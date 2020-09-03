@@ -68,6 +68,16 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolver = class UserResolver {
+    me(ctx) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("session: ", ctx.req.session);
+            if (!ctx.req.session.userId) {
+                return null;
+            }
+            const user = yield ctx.em.findOne(User_1.User, { id: ctx.req.session.userId });
+            return user;
+        });
+    }
     register(options, ctx) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
@@ -111,6 +121,7 @@ let UserResolver = class UserResolver {
                     };
                 }
             }
+            ctx.req.session.userId = user.id;
             return { user };
         });
     }
@@ -140,10 +151,18 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
+            ctx.req.session.userId = user.id;
             return { user };
         });
     }
 };
+__decorate([
+    type_graphql_1.Query(() => User_1.User, { nullable: true }),
+    __param(0, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "me", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
     __param(0, type_graphql_1.Arg("options")),

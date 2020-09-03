@@ -6,6 +6,7 @@ import {
   Field,
   Ctx,
   ObjectType,
+  Query,
 } from "type-graphql";
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
@@ -39,6 +40,19 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() ctx: MyContext) {
+    console.log("session: ", ctx.req.session);
+
+    // not logged in
+    if (!ctx.req.session.userId) {
+      return null;
+    }
+
+    const user = await ctx.em.findOne(User, { id: ctx.req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
@@ -85,6 +99,12 @@ export class UserResolver {
         };
       }
     }
+
+    // store user id session
+    // this will set a cookie on the user
+    // keep them logged in
+    ctx.req.session.userId = user.id;
+
     return { user };
   }
 
@@ -118,6 +138,8 @@ export class UserResolver {
         ],
       };
     }
+
+    ctx.req.session.userId = user.id;
 
     return { user };
   }
