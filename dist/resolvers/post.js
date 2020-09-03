@@ -51,7 +51,7 @@ let PostResolver = class PostResolver {
             return post;
         });
     }
-    deeltePost(id, ctx) {
+    deletePost(id, ctx) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 yield ctx.em.nativeDelete(Post_1.Post, { id });
@@ -101,7 +101,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
-], PostResolver.prototype, "deeltePost", null);
+], PostResolver.prototype, "deletePost", null);
 PostResolver = __decorate([
     type_graphql_1.Resolver()
 ], PostResolver);
