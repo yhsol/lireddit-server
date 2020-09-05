@@ -27,7 +27,7 @@ const main = async () => {
     cors({
       origin: "http://localhost:3000",
       credentials: true,
-    })
+    }),
   );
 
   app.use(
@@ -46,7 +46,7 @@ const main = async () => {
       saveUninitialized: false,
       secret: "keyboard cat",
       resave: false,
-    })
+    }),
   );
 
   const apolloServer = new ApolloServer({
