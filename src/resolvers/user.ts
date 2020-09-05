@@ -9,9 +9,14 @@ import {
 } from "type-graphql";
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
-import { COOKIE_NAME } from "../constants";
+import {
+  COOKIE_NAME,
+  FORGET_PASSWORD_PREFIX as FORGOT_PASSWORD_PREFIX,
+} from "../constants";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
 import { validateRegister } from "../utils/vaidateRegister";
+import { sendEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
 @ObjectType()
 class FieldError {
   @Field()
@@ -32,12 +37,81 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() ctx: MyContext
+  ): Promise<UserResponse> {
+    if (newPassword.length < 3) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "length must be greater than 3",
+          },
+        ],
+      };
+    }
+
+    const key = FORGOT_PASSWORD_PREFIX + token;
+    const userId = await ctx.redis.get(key);
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          },
+        ],
+      };
+    }
+
+    const user = await ctx.em.findOne(User, { id: parseInt(userId) });
+
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "user no longer exists",
+          },
+        ],
+      };
+    }
+
+    user.password = newPassword;
+    await ctx.em.persistAndFlush(user);
+
+    await ctx.redis.del(key);
+
+    // login user after change password
+    ctx.req.session.userId = user.id;
+
+    return { user };
+  }
+
   @Mutation(() => Boolean)
-  async forgotPassword(
-    @Arg("email") email: string,
-    @Ctx() ctx: MyContext,
-  ) {
-    // const user = await ctx.em.findOne(User, {email})
+  async forgotPassword(@Arg("email") email: string, @Ctx() ctx: MyContext) {
+    const user = await ctx.em.findOne(User, { email });
+    if (!user) {
+      // the email is not in the db
+      return true;
+    }
+
+    const token = v4();
+
+    await ctx.redis.set(
+      FORGOT_PASSWORD_PREFIX + token,
+      user.id,
+      "ex",
+      1000 * 60 * 60 * 24 * 3 // 3 days
+    );
+
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
     return true;
   }
   @Query(() => User, { nullable: true })
@@ -56,7 +130,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() ctx: MyContext,
+    @Ctx() ctx: MyContext
   ): Promise<UserResponse> {
     // const hashedPassword = await argon2.hash(options.password);
     const errors = validateRegister(options);
@@ -97,13 +171,13 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() ctx: MyContext,
+    @Ctx() ctx: MyContext
   ): Promise<UserResponse> {
     const user = await ctx.em.findOne(
       User,
       usernameOrEmail.includes("@")
         ? { email: usernameOrEmail }
-        : { username: usernameOrEmail },
+        : { username: usernameOrEmail }
     );
     if (!user) {
       return {
