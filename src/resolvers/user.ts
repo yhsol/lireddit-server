@@ -10,6 +10,7 @@ import {
 } from "type-graphql";
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
+import { COOKIE_NAME } from "../constants";
 // import argon2 from "argon2";
 
 @InputType()
@@ -144,5 +145,21 @@ export class UserResolver {
     ctx.req.session.userId = user.id;
 
     return { user };
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() ctx: MyContext) {
+    return new Promise((res) =>
+      ctx.req.session.destroy((err) => {
+        ctx.res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.error("err: ", err);
+          res(false);
+          return;
+        }
+
+        res(true);
+      })
+    );
   }
 }
