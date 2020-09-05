@@ -18,5 +18,8 @@ exports.default = {
     dbName: "lireddit",
     type: "postgresql",
     debug: !constants_1.__prod__,
+    port: 5432,
+    user: "postgres",
+    host: "localhost",
 };
 //# sourceMappingURL=mikro-orm.config.js.map

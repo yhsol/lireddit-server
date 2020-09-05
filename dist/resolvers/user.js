@@ -20,14 +20,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserResolver = void 0;
 const type_graphql_1 = require("type-graphql");
 const User_1 = require("../entities/User");
-const argon2_1 = __importDefault(require("argon2"));
 let UsernamePasswordInput = class UsernamePasswordInput {
 };
 __decorate([
@@ -101,10 +97,9 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            const hashedPassword = yield argon2_1.default.hash(options.password);
             const user = ctx.em.create(User_1.User, {
                 username: options.username,
-                password: hashedPassword,
+                password: options.password,
             });
             try {
                 yield ctx.em.persistAndFlush(user);
@@ -140,7 +135,7 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            const valid = yield argon2_1.default.verify(user.password, options.password);
+            const valid = user.password === options.password;
             if (!valid) {
                 return {
                     errors: [
