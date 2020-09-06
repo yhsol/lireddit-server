@@ -18,7 +18,6 @@ import path from "path";
 
 require("dotenv").config();
 
-// rerun
 const main = async () => {
   const conn = await createConnection({
     type: "postgres",
@@ -33,6 +32,8 @@ const main = async () => {
   });
 
   await conn.runMigrations();
+
+  // await Post.delete({});
 
   const app = express();
 
