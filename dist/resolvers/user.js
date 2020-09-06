@@ -29,6 +29,7 @@ const UsernamePasswordInput_1 = require("./UsernamePasswordInput");
 const vaidateRegister_1 = require("../utils/vaidateRegister");
 const sendEmail_1 = require("../utils/sendEmail");
 const uuid_1 = require("uuid");
+const typeorm_1 = require("typeorm");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -80,7 +81,8 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            const user = yield ctx.em.findOne(User_1.User, { id: parseInt(userId) });
+            const userIdNum = parseInt(userId);
+            const user = yield User_1.User.findOne(userIdNum);
             if (!user) {
                 return {
                     errors: [
@@ -91,8 +93,7 @@ let UserResolver = class UserResolver {
                     ],
                 };
             }
-            user.password = newPassword;
-            yield ctx.em.persistAndFlush(user);
+            yield User_1.User.update({ id: userIdNum }, { password: newPassword });
             yield ctx.redis.del(key);
             ctx.req.session.userId = user.id;
             return { user };
@@ -100,7 +101,7 @@ let UserResolver = class UserResolver {
     }
     forgotPassword(email, ctx) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield ctx.em.findOne(User_1.User, { email });
+            const user = yield User_1.User.findOne({ where: { email } });
             if (!user) {
                 return true;
             }
@@ -111,14 +112,10 @@ let UserResolver = class UserResolver {
         });
     }
     me(ctx) {
-        return __awaiter(this, void 0, void 0, function* () {
-            console.log("session: ", ctx.req.session);
-            if (!ctx.req.session.userId) {
-                return null;
-            }
-            const user = yield ctx.em.findOne(User_1.User, { id: ctx.req.session.userId });
-            return user;
-        });
+        if (!ctx.req.session.userId) {
+            return null;
+        }
+        return User_1.User.findOne(ctx.req.session.userId);
     }
     register(options, ctx) {
         var _a;
@@ -127,13 +124,20 @@ let UserResolver = class UserResolver {
             if (errors) {
                 return { errors };
             }
-            const user = ctx.em.create(User_1.User, {
-                username: options.username,
-                email: options.email,
-                password: options.password,
-            });
+            let user;
             try {
-                yield ctx.em.persistAndFlush(user);
+                const result = yield typeorm_1.getConnection()
+                    .createQueryBuilder()
+                    .insert()
+                    .into(User_1.User)
+                    .values({
+                    username: options.username,
+                    email: options.email,
+                    password: options.password,
+                })
+                    .returning("*")
+                    .execute();
+                user = result.raw[0];
             }
             catch (error) {
                 if (error.code === "23505" || ((_a = error.detail) === null || _a === void 0 ? void 0 : _a.includes("already exists"))) {
@@ -153,9 +157,9 @@ let UserResolver = class UserResolver {
     }
     login(usernameOrEmail, password, ctx) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield ctx.em.findOne(User_1.User, usernameOrEmail.includes("@")
-                ? { email: usernameOrEmail }
-                : { username: usernameOrEmail });
+            const user = yield User_1.User.findOne(usernameOrEmail.includes("@")
+                ? { where: { email: usernameOrEmail } }
+                : { where: { username: usernameOrEmail } });
             if (!user) {
                 return {
                     errors: [
@@ -214,7 +218,7 @@ __decorate([
     __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "me", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
