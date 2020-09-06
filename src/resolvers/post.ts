@@ -62,7 +62,7 @@ export class PostResolver {
 
     return {
       posts: posts.slice(0, realLimit),
-      hasMore: true,
+      hasMore: posts.length === realLimitPlusOne,
     };
   }
 

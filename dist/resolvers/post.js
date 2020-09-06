@@ -72,7 +72,7 @@ let PostResolver = class PostResolver {
             console.log("-----hasMore: ", limit, posts.length, realLimitPlusOne);
             return {
                 posts: posts.slice(0, realLimit),
-                hasMore: true,
+                hasMore: posts.length === realLimitPlusOne,
             };
         });
     }
