@@ -79,7 +79,6 @@ let UserResolver = class UserResolver {
         });
     }
     register(options, ctx) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             if (options.username.length <= 2) {
                 return {
@@ -102,15 +101,23 @@ let UserResolver = class UserResolver {
                 };
             }
             const hashedPassword = yield argon2_1.default.hash(options.password);
-            const user = ctx.em.create(User_1.User, {
-                username: options.username,
-                password: hashedPassword,
-            });
+            let user;
             try {
-                yield ctx.em.persistAndFlush(user);
+                const result = yield ctx.em
+                    .createQueryBuilder(User_1.User)
+                    .getKnexQuery()
+                    .insert({
+                    username: options.username,
+                    password: hashedPassword,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                })
+                    .returning("*");
+                user = result[0];
+                console.log("user: ", user);
             }
             catch (error) {
-                if (error.code === "23505" || ((_a = error.detail) === null || _a === void 0 ? void 0 : _a.includes("already exists"))) {
+                if (error.code === "23505") {
                     return {
                         errors: [
                             {
@@ -122,6 +129,8 @@ let UserResolver = class UserResolver {
                 }
             }
             ctx.req.session.userId = user.id;
+            console.log("user22", user);
+            user = Object.assign(Object.assign({}, user), { createdAt: user.created_at, updatedAt: user.updated_at });
             return { user };
         });
     }

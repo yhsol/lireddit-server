@@ -11,6 +11,7 @@ import {
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
+import { EntityManager } from "@mikro-orm/postgresql";
 
 @InputType()
 class UsernamePasswordInput {
@@ -80,15 +81,24 @@ export class UserResolver {
     }
 
     const hashedPassword = await argon2.hash(options.password);
-    const user = ctx.em.create(User, {
-      username: options.username,
-      password: hashedPassword,
-    });
+    let user;
     try {
-      await ctx.em.persistAndFlush(user);
+      const result = await (ctx.em as EntityManager)
+        .createQueryBuilder(User)
+        .getKnexQuery()
+        .insert({
+          username: options.username,
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning("*");
+
+      user = result[0];
+      console.log("user: ", user);
     } catch (error) {
       // duplicate username error
-      if (error.code === "23505" || error.detail?.includes("already exists")) {
+      if (error.code === "23505") {
         return {
           errors: [
             {
@@ -104,6 +114,13 @@ export class UserResolver {
     // this will set a cookie on the user
     // keep them logged in
     ctx.req.session.userId = user.id;
+    console.log("user22", user);
+
+    user = {
+      ...user,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    };
 
     return { user };
   }
