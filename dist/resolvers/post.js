@@ -56,20 +56,29 @@ let PostResolver = class PostResolver {
     textSnippet(root) {
         return root.text.slice(0, 50);
     }
-    posts(limit, cursor) {
+    posts(limit, cursor, info) {
         return __awaiter(this, void 0, void 0, function* () {
             const realLimit = Math.min(50, limit);
             const realLimitPlusOne = realLimit + 1;
-            const qb = typeorm_1.getConnection()
-                .getRepository(Post_1.Post)
-                .createQueryBuilder("p")
-                .orderBy('"createdAt"', "DESC")
-                .take(realLimitPlusOne);
+            const replacements = [realLimitPlusOne];
             if (cursor) {
-                qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+                replacements.push(new Date(parseInt(cursor)));
             }
-            const posts = yield qb.getMany();
-            console.log("-----hasMore: ", limit, posts.length, realLimitPlusOne);
+            const posts = yield typeorm_1.getConnection().query(`
+    select p.*, 
+    json_build_object(
+      'id', u.id,
+      'username', u.username,
+      'email', u.email,
+      'createdAt', u."createdAt"
+      ) creator
+    from post p
+    inner join public.user u on u.id = p."creatorId"
+    ${cursor ? `where p."createdAt" < $2` : ""}
+    order by p."createdAt" DESC
+    limit $1
+    `, replacements);
+            console.log("posts: ", posts);
             return {
                 posts: posts.slice(0, realLimit),
                 hasMore: posts.length === realLimitPlusOne,
@@ -114,8 +123,9 @@ __decorate([
     type_graphql_1.Query(() => PaginatedPosts),
     __param(0, type_graphql_1.Arg("limit", () => type_graphql_1.Int)),
     __param(1, type_graphql_1.Arg("cursor", () => String, { nullable: true })),
+    __param(2, type_graphql_1.Info()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, Object, Object]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "posts", null);
 __decorate([

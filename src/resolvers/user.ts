@@ -115,6 +115,20 @@ export class UserResolver {
     );
     return true;
   }
+
+  @Query(() => [User], { nullable: true })
+  async userlist() {
+    const result = await getConnection()
+      .getRepository(User)
+      .createQueryBuilder("u")
+      .orderBy('"createdAt"', "DESC");
+
+    const user = await result.getMany();
+    console.log("userlist: ", user);
+
+    return user;
+  }
+
   @Query(() => User, { nullable: true })
   me(@Ctx() ctx: MyContext) {
     // not logged in

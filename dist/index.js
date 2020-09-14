@@ -34,7 +34,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         type: "postgres",
         database: "lireddit2",
         username: "postgres",
-        password: "hansol0221!",
+        password: process.env.PSQL_PASSWORD,
         host: "localhost",
         logging: true,
         synchronize: true,

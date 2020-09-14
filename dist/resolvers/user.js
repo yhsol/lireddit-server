@@ -111,6 +111,17 @@ let UserResolver = class UserResolver {
             return true;
         });
     }
+    userlist() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const result = yield typeorm_1.getConnection()
+                .getRepository(User_1.User)
+                .createQueryBuilder("u")
+                .orderBy('"createdAt"', "DESC");
+            const user = yield result.getMany();
+            console.log("userlist: ", user);
+            return user;
+        });
+    }
     me(ctx) {
         if (!ctx.req.session.userId) {
             return null;
@@ -213,6 +224,12 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "forgotPassword", null);
+__decorate([
+    type_graphql_1.Query(() => [User_1.User], { nullable: true }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "userlist", null);
 __decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
     __param(0, type_graphql_1.Ctx()),
