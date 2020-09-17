@@ -16,6 +16,7 @@ import { Post } from "../entities/Post";
 import { MyContext } from "src/types";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
+import { UpDoot } from "src/entities/UpDoot";
 
 @InputType()
 class PostInput {
@@ -38,6 +39,24 @@ export class PostResolver {
   @FieldResolver(() => String)
   textSnippet(@Root() root: Post) {
     return root.text.slice(0, 50);
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("postId", () => Int) postId: number,
+    @Arg("value", () => Int) value: number,
+    @Ctx() ctx: MyContext
+  ) {
+    const isUpdoot = value !== -1;
+    const realValue = isUpdoot ? 1 : -1;
+    const { userId } = ctx.req.session;
+    await UpDoot.insert({
+      userId,
+      postId,
+      value: realValue,
+    });
+    return true;
   }
 
   @Query(() => PaginatedPosts)
