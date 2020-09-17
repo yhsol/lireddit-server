@@ -23,7 +23,7 @@ const main = async () => {
     type: "postgres",
     database: "lireddit2",
     username: "postgres",
-    password: "hansol0221!",
+    password: "",
     host: "localhost",
     logging: true,
     synchronize: true,
